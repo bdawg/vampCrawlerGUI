@@ -10,7 +10,6 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import (
     FigureCanvasQTAgg as FigureCanvas,
     NavigationToolbar2QT as NavigationToolbar)
-import matplotlib.pyplot as plt
 import random
 
 #import vcGUIDesign
@@ -33,6 +32,7 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
         self.fnameListbox.itemSelectionChanged.connect(self.updateSelections)
         self.maskListbox.itemSelectionChanged.connect(self.updateSelections)
         self.filterListbox.itemSelectionChanged.connect(self.updateSelections)
+        self.selectedFilesListbox.itemSelectionChanged.connect(self.changeSelectedFile)
 
         self.plot1 = mplPlotObject(self.mplWindow1, self.mplLayout1)
         self.plot2 = mplPlotObject(self.mplWindow2, self.mplLayout2)
@@ -145,16 +145,24 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
         self.chosenProps = [selectedDates, selectedMasks, selectedFilters, selectedFNames]
         self.refreshGUI()
 
-        # self.rmmpl()
-        # fig2 = Figure()
-        # fig2Ax = fig2.add_subplot(111)
-        # fig2Ax.plot(np.random.rand(100))
-        # self.canvas2 = self.addPlot(fig2, self.mplWindow2, self.mplLayout2)
-        # self.canvas.
-        # self.fig2Ax.plot(np.random.rand(100))
+        self.plot1.plotTestData()
+        self.plot2.plotTestData()
 
-        self.plot1.plotData()
-        self.plot2.plotData()
+
+    def changeSelectedFile(self):
+        try:
+            selectedFile = self.selectedFilesListbox.selectedItems()[0].text()
+
+        except:
+            print "No selection"
+            pass
+
+        else:
+            print selectedFile
+            selectedRows = self.filterFunction()
+            curRow = [sublist[0] for sublist in selectedRows].index(selectedFile)
+            vhvvData = selectedRows[curRow][2]
+            self.plot1.plotVHVVdata(vhvvData[0]) #TODO - don't just choose the first vhvvdata!
 
 
     def getAllCategoryContents(self):
@@ -180,7 +188,6 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
 
     def filterFunction(self):
         # Find rows in masterList that match the chosenProps
-
         chosenRows = []
         for curRow in self.masterList:
             date = dateutil.parser.parse(curRow[1].UTCs[0])
@@ -195,25 +202,6 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
         return chosenRows
 
 
-    # def addPlot(self, fig, tgtWindow, tgtLayout):
-    #     # Add the plot 'fig' to the layout 'tgtLayout' in the container 'tgtWindow'
-    #     self.canvas = FigureCanvas(fig)
-    #     #self.mplLayout1.addWidget(self.canvas)
-    #     tgtLayout.addWidget(self.canvas)
-    #     self.canvas.draw()
-    #     self.toolbar = NavigationToolbar(self.canvas,
-    #         tgtWindow, coordinates=True)
-    #     tgtLayout.addWidget(self.toolbar)
-    #     fig.patch.set_facecolor('none')
-    #     return self.canvas
-    #
-    #
-    # def rmmpl(self):
-    #     self.mplLayout1.removeWidget(self.canvas)
-    #     self.canvas.close()
-    #     self.mplLayout1.removeWidget(self.toolbar)
-    #     self.toolbar.close()
-
 
 class mplPlotObject:
     def __init__(self, window, layout):
@@ -225,11 +213,44 @@ class mplPlotObject:
         layout.addWidget(toolbar)
         self.figureObj.patch.set_facecolor('none')
 
-    def plotData(self):
+    def plotTestData(self):
         data = [random.random() for i in range(10)]
-        self.ax = self.figureObj.add_subplot(111)
+        self.ax = self.figureObj.add_subplot(211)
         self.ax.hold(False)
         self.ax.plot(data, '*-')
+        self.figureObj.tight_layout()
+        self.canvas.draw()
+
+    def plotVHVVdata(self, vhvvData, maxBL = 8.):
+        print 'Plotting vhvv data for ' + vhvvData[0]
+        az = vhvvData[1].bazims
+        bl = vhvvData[1].blengths
+        blCols = bl / maxBL
+        #self.figureObj.clf()
+
+        # This is a horrible hack to get the error bar colors to match...
+        self.ax = self.figureObj.add_subplot(211)
+        scatterPlt = self.ax.scatter(az, vhvvData[1].vhvv, c=blCols, marker='x', alpha=0.8)
+        clb = self.figureObj.colorbar(scatterPlt)
+        barColor = clb.to_rgba(blCols)
+
+        self.figureObj.clf()
+        self.figureObj.suptitle(vhvvData[0])
+        self.ax = self.figureObj.add_subplot(211)
+        scatterPlt = self.ax.scatter(az, vhvvData[1].vhvv, c=blCols, marker='x', alpha=0.8)
+        a,b,c = self.ax.errorbar(az, vhvvData[1].vhvv, yerr=vhvvData[1].vhvverr, marker='', ls='',
+                             alpha=0.8, capsize=0, zorder=0)
+        c[0].set_color(barColor)
+        #self.ax.set_title('foo')
+        self.ax.text(np.min(vhvvData[1].vhvv), -np.pi/2, 'hello')
+        self.figureObj.tight_layout()
+
+
+        self.ax = self.figureObj.add_subplot(212)
+        scatterPlt = self.ax.scatter(az, vhvvData[1].vhvvu, c=blCols, marker='x', alpha=0.8)
+        a,b,c = self.ax.errorbar(az, vhvvData[1].vhvvu, yerr=vhvvData[1].vhvvuerr, marker='', ls='',
+                             alpha=0.8, capsize=0, zorder=0)
+        c[0].set_color(barColor)
         self.figureObj.tight_layout()
         self.canvas.draw()
 
@@ -271,16 +292,6 @@ def main():
 
     app = QtGui.QApplication(sys.argv)
     form = vcApp()
-
-    # fig1 = Figure()
-    # fig1Ax = fig1.add_subplot(111)
-    # fig1Ax.plot(np.random.rand(100))
-    # form.canvas1 = form.addPlot(fig1, form.mplWindow1, form.mplLayout1)
-    # form.fig2 = Figure()
-    # form.fig2Ax = form.fig2.add_subplot(111)
-    # form.fig2Ax.plot(np.random.rand(100))
-    # form.canvas2 = form.addPlot(form.fig2, form.mplWindow2, form.mplLayout2)
-
     form.show()
     app.exec_()
 
