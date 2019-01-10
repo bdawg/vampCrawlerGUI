@@ -15,8 +15,6 @@ import random
 #import vcGUIDesign
 Ui_MainWindow, QMainWindow = loadUiType('vcGUIDesign.ui')
 
-debugMsg = True
-
 class vcApp(QtGui.QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -27,14 +25,11 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
         self.setListAll = []
         self.chosenProps = []
         self.chosenPlotWindow = 0 # =0 for none, or number of window
-        self.plot1Mode = 0 # 0 for V2, 1 for CP, more in future...
-        self.plot2Mode = 0  # 0 for V2, 1 for CP, more in future...
         self.rootCrawlPath = ''
         self.vhvvPrefix = 'diffdata'  # Identify vhvv files as those starting with this
         self.autosaveFilename = 'vampCrawlerAutosave.pic'
         self.saveFilenameLineEdit.setText(self.autosaveFilename)
         self.maxBl = 8.
-        self.maxBlLabel.setText('%3.2f' % self.maxBl)
 
         # Make connections
         self.crawlButton.clicked.connect(self.doCrawl)
@@ -48,15 +43,9 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
         self.plotWindowButtonNone.toggled.connect(lambda: self.changePlotWin(self.plotWindowButtonNone))
         self.plotWindowButton1.toggled.connect(lambda: self.changePlotWin(self.plotWindowButton1))
         self.plotWindowButton2.toggled.connect(lambda: self.changePlotWin(self.plotWindowButton2))
-        self.plotV2CPButton.toggled.connect(lambda: self.changePlotWin(self.plotV2CPButton))
         self.saveFilenameLineEdit.editingFinished.connect(self.changeSaveFilename)
         self.crawlRootLineEdit.editingFinished.connect(self.changeCrawlRoot)
         self.maxBlSlider.valueChanged.connect(self.changeMaxBL)
-
-        self.plot1V2Button.toggled.connect(lambda: self.changePlotMode(self.plot1V2Button))
-        self.plot1CPButton.toggled.connect(lambda: self.changePlotMode(self.plot1CPButton))
-        self.plot2V2Button.toggled.connect(lambda: self.changePlotMode(self.plot2V2Button))
-        self.plot2CPButton.toggled.connect(lambda: self.changePlotMode(self.plot2CPButton))
 
         self.plot1 = mplPlotObject(self.mplWindow1, self.mplLayout1)
         self.plot2 = mplPlotObject(self.mplWindow2, self.mplLayout2)
@@ -191,8 +180,7 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
             pass
 
         else:
-            if debugMsg:
-                print self.selectedFile
+            print self.selectedFile
             selectedRows = self.filterFunction()
             curRow = [sublist[0] for sublist in selectedRows].index(self.selectedFile)
             self.curVhvvData = selectedRows[curRow][2]
@@ -220,20 +208,9 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
     def changeSelectedDiffdata(self):
         curDiffdataRow = self.diffdataFilesListbox.currentRow()
         if self.chosenPlotWindow == 1:
-            if self.plot1Mode == 0:
-                self.plot1.plotVHVVdata(self.curVhvvData[curDiffdataRow], self.fName, maxBL=self.maxBl)
-            else:
-                self.plot1.plotDiffCPdata(self.curVhvvData[curDiffdataRow], self.fName)
-
+            self.plot1.plotVHVVdata(self.curVhvvData[curDiffdataRow], self.fName)
         if self.chosenPlotWindow == 2:
-            if self.plot2Mode == 0:
-                self.plot2.plotVHVVdata(self.curVhvvData[curDiffdataRow], self.fName, maxBL=self.maxBl)
-            else:
-                self.plot2.plotDiffCPdata(self.curVhvvData[curDiffdataRow], self.fName)
-
-        if self.chosenPlotWindow == 3:
-            self.plot1.plotVHVVdata(self.curVhvvData[curDiffdataRow], self.fName, maxBL=self.maxBl)
-            self.plot2.plotDiffCPdata(self.curVhvvData[curDiffdataRow], self.fName)
+            self.plot2.plotVHVVdata(self.curVhvvData[curDiffdataRow], self.fName)
 
 
     def getAllCategoryContents(self):
@@ -284,31 +261,13 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
 
     def changePlotWin(self,button):
         if button.isChecked() == True:
-            if debugMsg:
-                print "Selected "+button.text()
+            print "Selected "+button.text()
             if button.objectName() == "plotWindowButtonNone":
                 self.chosenPlotWindow = 0
             if button.objectName() == "plotWindowButton1":
                 self.chosenPlotWindow = 1
             if button.objectName() == "plotWindowButton2":
                 self.chosenPlotWindow = 2
-            if button.objectName() == "plotV2CPButton":
-                self.chosenPlotWindow = 3
-            self.changeSelectedDiffdata()
-
-
-    def changePlotMode(self,button):
-        if button.isChecked() == True:
-            if button.objectName() == "plot1V2Button":
-                self.plot1Mode = 0
-            if button.objectName() == "plot1CPButton":
-                self.plot1Mode = 1
-            if button.objectName() == "plot2V2Button":
-                self.plot2Mode = 0
-            if button.objectName() == "plot2CPButton":
-                self.plot2Mode = 1
-        self.changeSelectedDiffdata()
-
 
     def changeSaveFilename(self):
         self.autosaveFilename = str(self.saveFilenameLineEdit.text())
@@ -327,9 +286,7 @@ class vcApp(QtGui.QMainWindow, Ui_MainWindow):
         QtGui.QApplication.clipboard().setPixmap(pixmap)
 
     def changeMaxBL(self):
-        self.maxBl = self.maxBlSlider.value()/10.
-        self.maxBlLabel.setText('%3.2f' % self.maxBl)
-        self.changeSelectedDiffdata()
+        self.maxBl = self.maxBlSlider.value()
 
 
 class mplPlotObject:
@@ -353,36 +310,34 @@ class mplPlotObject:
 
 
     def plotVHVVdata(self, vhvvData, fName, maxBL = 8.):
-        if debugMsg:
-            print 'Plotting vhvv data for ' + vhvvData[0]
+        print 'Plotting vhvv data for ' + vhvvData[0]
         az = vhvvData[1].bazims
         bl = vhvvData[1].blengths
-        blCols = bl / np.max(bl)
 
         az = az[bl <= maxBL]
         vhvv = vhvvData[1].vhvv[bl <= maxBL]
         vhvverr = vhvvData[1].vhvverr[bl <= maxBL]
-        vhvvu = vhvvData[1].vhvvu[bl <= maxBL]
-        vhvvuerr = vhvvData[1].vhvvuerr[bl <= maxBL]
-        blCols = blCols[bl <= maxBL]
-        bl = bl[bl <= maxBL]
+
+
+        blCols = bl / maxBL
+        #self.figureObj.clf()
 
         # This is a horrible hack to get the error bar colors to match...
         self.ax = self.figureObj.add_subplot(211)
-        scatterPlt = self.ax.scatter(az, vhvv, c=blCols, marker='x', alpha=0.8)
+        scatterPlt = self.ax.scatter(az, vhvvData[1].vhvv, c=blCols, marker='x', alpha=0.8)
         clb = self.figureObj.colorbar(scatterPlt)
         barColor = clb.to_rgba(blCols)
 
         self.figureObj.clf()
         self.figureObj.suptitle(vhvvData[0])
         self.ax = self.figureObj.add_subplot(211)
-        scatterPlt = self.ax.scatter(az, vhvv, c=blCols, marker='x', alpha=0.8)
-        a,b,c = self.ax.errorbar(az, vhvv, yerr=vhvverr, marker='', ls='',
+        scatterPlt = self.ax.scatter(az, vhvvData[1].vhvv, c=blCols, marker='x', alpha=0.8)
+        a,b,c = self.ax.errorbar(az, vhvvData[1].vhvv, yerr=vhvvData[1].vhvverr, marker='', ls='',
                              alpha=0.8, capsize=0, zorder=0)
         c[0].set_color(barColor)
         #self.ax.set_title('foo')
-        sigString = "$\sigma$ = %.4f" % np.std(vhvv)
-        chi2String = "$\chi^2_{null}$ = %.2f" % self.reducedChi2(vhvv, vhvverr)
+        sigString = "$\sigma$ = %.4f" % np.std(vhvvData[1].vhvv)
+        chi2String = "$\chi^2_{null}$ = %.2f" % self.reducedChi2(vhvvData[1].vhvv, vhvvData[1].vhvverr)
         infoString = sigString + '      ' + chi2String
         self.ax.text(0.5, 0.9, infoString, horizontalalignment='center', verticalalignment='center',
                      transform = self.ax.transAxes)
@@ -392,12 +347,12 @@ class mplPlotObject:
 
 
         self.ax = self.figureObj.add_subplot(212)
-        scatterPlt = self.ax.scatter(az, vhvvu, c=blCols, marker='x', alpha=0.8)
-        a,b,c = self.ax.errorbar(az, vhvvu, yerr=vhvvuerr, marker='', ls='',
+        scatterPlt = self.ax.scatter(az, vhvvData[1].vhvvu, c=blCols, marker='x', alpha=0.8)
+        a,b,c = self.ax.errorbar(az, vhvvData[1].vhvvu, yerr=vhvvData[1].vhvvuerr, marker='', ls='',
                              alpha=0.8, capsize=0, zorder=0)
         c[0].set_color(barColor)
-        sigString = "$\sigma$ = %.4f" % np.std(vhvvu)
-        chi2String = "$\chi^2_{null}$ = %.2f" % self.reducedChi2(vhvvu, vhvvuerr)
+        sigString = "$\sigma$ = %.4f" % np.std(vhvvData[1].vhvvu)
+        chi2String = "$\chi^2_{null}$ = %.2f" % self.reducedChi2(vhvvData[1].vhvvu, vhvvData[1].vhvvuerr)
         infoString = sigString + '      ' + chi2String
         self.ax.text(0.5, 0.9, infoString, horizontalalignment='center', verticalalignment='center',
                      transform = self.ax.transAxes)
@@ -405,45 +360,6 @@ class mplPlotObject:
                      transform=self.ax.transAxes)
         self.figureObj.tight_layout()
         self.canvas.draw()
-
-
-    def plotDiffCPdata(self, vhvvData, fName):
-        nBins = 25
-        if debugMsg:
-            print 'Plotting diffCP data for ' + vhvvData[0]
-        try:
-            vhvvData[1].diffCP
-        except:
-            print "No closure phase data present for this file"
-        else:
-            if debugMsg:
-                print "Found CP Data for " + vhvvData[0]
-            cp = vhvvData[1].diffCP/np.pi * 180
-            cpU = vhvvData[1].diffCPu / np.pi * 180
-            self.figureObj.clf()
-            self.figureObj.suptitle(vhvvData[0])
-            self.ax = self.figureObj.add_subplot(211)
-            histPlt = self.ax.hist(cp, nBins)
-            self.ax.set_xlabel('Differential closure phase (deg)')
-            self.ax.set_ylabel('Frequency')
-            sigString = "$\sigma$ = %.3f" % np.std(cp)
-            self.ax.text(0.99, 0.9, sigString, horizontalalignment='right', verticalalignment='center',
-                         transform=self.ax.transAxes)
-            self.ax.text(0.99, 0.75, fName, horizontalalignment='right', verticalalignment='center',
-                         transform=self.ax.transAxes)
-            #self.figureObj.tight_layout()
-
-            self.ax = self.figureObj.add_subplot(212)
-            histPlt = self.ax.hist(cpU, nBins)
-            self.ax.set_xlabel('Differential closure phase (deg)')
-            self.ax.set_ylabel('Frequency')
-            sigString = "$\sigma$ = %.3f" % np.std(cpU)
-            self.ax.text(0.99, 0.9, sigString, horizontalalignment='right', verticalalignment='center',
-                         transform=self.ax.transAxes)
-            self.ax.text(0.99, 0.75, fName, horizontalalignment='right', verticalalignment='center',
-                         transform=self.ax.transAxes)
-            self.figureObj.tight_layout()
-            self.canvas.draw()
 
 
     def reducedChi2(self, vhvv, vhvverr):
@@ -480,27 +396,13 @@ class readVHVVdata:
         self.vhvvuerr = vhvvObj.vhvvuerr
         self.blengths = vhvvObj.blengths
         self.bazims = vhvvObj.bazims
-        try:
-            self.diffCP = vhvvObj.cp
-            self.diffCPerr = vhvvObj.cperr
-            self.diffCPu = vhvvObj.cpu
-            self.diffCPuerr = vhvvObj.cpuerr
-            self.BL2H_IX = vhvvObj.BL2H_IX
-            self.H2BL_IX = vhvvObj.H2BL_IX
-            self.BL2BS_IX = vhvvObj.BL2BS_IX
-            self.BS2BL_IX = vhvvObj.BS2BL_IX
-        except:
-            if debugMsg:
-                print "Couldn't find diff CP data for "+vhvvFilename
         del (vhvvObj)
 
 
 
 
 def main():
-    if debugMsg:
-        print "main() running"
-        print "vampCrawler version 0.1"
+    print "main() running"
 
     app = QtGui.QApplication(sys.argv)
     form = vcApp()

@@ -41,13 +41,18 @@ vhvvdata=masterList[0][2][0]
 az = vhvvdata[1].bazims
 bl = vhvvdata[1].blengths
 blCols = bl/8.
+# plt.figure()
+# plt.clf()
+# scatterPlot = plt.scatter(az, vhvvdata[1].vhvv, c=blCols, marker='x', alpha=0.8)
+# clb = plt.colorbar(scatterPlot)
+# clb.ax.yaxis.set_visible(False)
+# a,b,c = plt.errorbar(az, vhvvdata[1].vhvv, yerr=vhvvdata[1].vhvverr, marker='', ls='',
+#                      alpha=0.8, capsize=0, zorder=0)
+# barColor = clb.to_rgba(blCols)
+# c[0].set_color(barColor)
+# plt.show()
+
 plt.figure()
 plt.clf()
-scatterPlot = plt.scatter(az, vhvvdata[1].vhvv, c=blCols, marker='x', alpha=0.8)
-clb = plt.colorbar(scatterPlot)
-clb.ax.yaxis.set_visible(False)
-a,b,c = plt.errorbar(az, vhvvdata[1].vhvv, yerr=vhvvdata[1].vhvverr, marker='', ls='',
-                     alpha=0.8, capsize=0, zorder=0)
-barColor = clb.to_rgba(blCols)
-c[0].set_color(barColor)
-plt.show()
+plt.hist(vhvvdata[1].cp, bins=50)
+plt.show
